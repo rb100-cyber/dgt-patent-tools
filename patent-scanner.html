@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patent Scanner · DGT Patent Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { min-height: 100vh; background: #0B0F1A; font-family: 'Inter', system-ui, sans-serif; color: #EDF2F8; }
+
+  #gate { min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  #gate .card { background:#1A2133; border:1px solid #253046; border-radius:12px; padding:36px; width:100%; max-width:340px; text-align:center; }
+  #gate h2 { font-family:'Space Grotesk',system-ui; font-size:17px; margin-bottom:6px; }
+  #gate p { font-size:12px; color:#7A8BA8; margin-bottom:24px; }
+  #gate input { width:100%; padding:9px 12px; background:#0B0F1A; border:1px solid #253046; border-radius:7px; color:#EDF2F8; font-size:14px; outline:none; margin-bottom:10px; letter-spacing:0.1em; text-align:center; }
+  #gate button { width:100%; padding:9px; background:#C8972A22; border:1px solid #C8972A88; border-radius:7px; color:#E8B044; font-size:12px; font-weight:700; font-family:'Space Grotesk',system-ui; cursor:pointer; }
+  #gate .err { font-size:11px; color:#E05252; margin-top:8px; min-height:16px; }
+
+  #app { display:none; }
+  header { background:#131929; border-bottom:1px solid #253046; padding:14px 24px; display:flex; align-items:center; gap:14px; }
+  .hicon { width:38px; height:38px; border-radius:50%; border:2px solid #C8972A; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+  .htitle { font-family:'Space Grotesk',system-ui; font-size:17px; font-weight:700; letter-spacing:-0.02em; }
+  .hsub { font-size:11px; color:#7A8BA8; margin-top:1px; }
+  .hback { margin-left:auto; font-size:11px; color:#7A8BA8; text-decoration:none; }
+  .hback:hover { color:#C8972A; }
+  .scan-time { text-align:right; }
+  .scan-time .lbl { font-size:10px; color:#7A8BA8; }
+  .scan-time .val { font-size:12px; color:#B0BDD0; font-family:'Space Grotesk',system-ui; }
+
+  main { max-width:900px; margin:0 auto; padding:24px 16px; }
+
+  /* Upload */
+  .upload-zone {
+    border:2px dashed #253046; border-radius:12px; padding:48px 24px;
+    text-align:center; cursor:pointer; background:#1A2133;
+    transition:all 0.15s; margin-bottom:14px;
+  }
+  .upload-zone.drag { border-color:#E8B044; background:#C8972A10; }
+  .upload-zone h3 { font-family:'Space Grotesk',system-ui; font-size:15px; font-weight:600; margin-bottom:6px; margin-top:10px; }
+  .upload-zone p { font-size:12px; color:#7A8BA8; line-height:1.6; }
+
+  .demo-btn { width:100%; padding:9px; background:transparent; border:1px solid #253046; border-radius:8px; color:#7A8BA8; font-size:12px; cursor:pointer; font-family:'Space Grotesk',system-ui; transition:all 0.15s; }
+  .demo-btn:hover { color:#E8B044; border-color:#C8972A; }
+
+  .how-card { background:#1A2133; border:1px solid #253046; border-radius:12px; padding:20px; margin-top:20px; }
+  .how-card .lbl { font-size:11px; font-weight:700; color:#C8972A; font-family:'Space Grotesk',system-ui; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px; }
+  .how-step { display:flex; gap:12px; margin-bottom:9px; align-items:flex-start; }
+  .step-num { width:20px; height:20px; border-radius:50%; background:#C8972A18; border:1px solid #C8972A55; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#C8972A; flex-shrink:0; font-family:'Space Grotesk',system-ui; }
+  .step-text { font-size:12px; color:#B0BDD0; line-height:1.5; }
+
+  /* Stats */
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:18px; }
+  .stat { background:#1A2133; border:1px solid #253046; border-radius:8px; padding:12px 14px; }
+  .stat-val { font-size:22px; font-weight:700; font-family:'Space Grotesk',system-ui; }
+  .stat-lbl { font-size:10px; color:#7A8BA8; text-transform:uppercase; letter-spacing:0.07em; margin-top:3px; }
+
+  /* Filters */
+  .filters { display:flex; gap:7px; margin-bottom:14px; flex-wrap:wrap; }
+  .filter-btn { padding:5px 11px; border-radius:5px; border:1px solid #253046; background:transparent; color:#7A8BA8; font-size:10px; font-weight:700; font-family:'Space Grotesk',system-ui; cursor:pointer; text-transform:uppercase; letter-spacing:0.06em; transition:all 0.15s; }
+  .filter-btn.active-high   { border-color:#E05252; background:#E0525218; color:#E05252; }
+  .filter-btn.active-watch  { border-color:#D4882A; background:#D4882A18; color:#D4882A; }
+  .filter-btn.active-info   { border-color:#8B6FD4; background:#8B6FD418; color:#8B6FD4; }
+  .filter-btn.active-monitor{ border-color:#3DB87A; background:#3DB87A18; color:#3DB87A; }
+  .filter-btn.active-all    { border-color:#C8972A; background:#C8972A18; color:#E8B044; }
+  .search-input { flex:1; min-width:140px; padding:5px 11px; border-radius:5px; border:1px solid #253046; background:#1A2133; color:#EDF2F8; font-size:12px; outline:none; }
+
+  /* Patent cards */
+  .patent-card { border-radius:8px; padding:13px 15px; margin-bottom:7px; cursor:pointer; transition:border-color 0.15s; }
+  .card-header { display:flex; align-items:flex-start; gap:10px; }
+  .card-meta { display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap; }
+  .card-title { font-size:13px; font-weight:600; font-family:'Space Grotesk',system-ui; line-height:1.4; margin-bottom:3px; color:#EDF2F8; }
+  .card-sub { font-size:11px; color:#7A8BA8; }
+  .card-arrow { font-size:15px; color:#7A8BA8; flex-shrink:0; transition:transform 0.15s; margin-top:2px; }
+  .card-body { margin-top:11px; padding-top:11px; border-top:1px solid #253046; }
+  .card-abstract { font-size:11px; color:#7A8BA8; line-height:1.6; margin-bottom:9px; }
+  .hits-label { font-size:10px; color:#7A8BA8; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:4px; }
+  .hit-tag { display:inline-block; font-size:10px; padding:2px 6px; background:#C8972A18; border:1px solid #C8972A33; border-radius:3px; color:#E8B044; font-family:monospace; margin:2px; }
+  .card-link { font-size:11px; color:#C8972A; text-decoration:none; display:inline-flex; align-items:center; gap:3px; margin-top:6px; }
+  .card-link:hover { color:#E8B044; }
+
+  .badge { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:0.07em; font-family:'Space Grotesk',system-ui; text-transform:uppercase; }
+  .badge-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+  .office-tag { font-size:10px; color:#7A8BA8; font-family:'Space Grotesk',system-ui; letter-spacing:0.04em; }
+
+  .empty { text-align:center; padding:48px 24px; color:#7A8BA8; font-size:13px; }
+  .result-footer { display:flex; justify-content:space-between; align-items:center; margin-top:16px; }
+  .result-count { font-size:11px; color:#7A8BA8; }
+  .new-scan-btn { padding:6px 13px; border-radius:6px; border:1px solid #253046; background:transparent; color:#7A8BA8; font-size:11px; cursor:pointer; font-family:'Space Grotesk',system-ui; }
+  .new-scan-btn:hover { color:#B0BDD0; border-color:#7A8BA8; }
+
+  .spinner { display:inline-block; width:18px; height:18px; border:2px solid #253046; border-top-color:#C8972A; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:8px; vertical-align:middle; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  footer-note { font-size:10px; color:#253046; text-align:center; padding:20px; display:block; }
+</style>
+</head>
+<body>
+
+<!-- Auth Gate -->
+<div id="gate">
+  <div class="card">
+    <div style="font-size:28px;margin-bottom:14px">📡</div>
+    <h2>Patent Scanner</h2>
+    <p>DGT Patent Intelligence · Enter access code</p>
+    <input type="password" id="pw" placeholder="Access code" onkeydown="if(event.key==='Enter')auth()">
+    <button onclick="auth()">Unlock</button>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <header>
+    <div style="position:relative;width:42px;height:42px;flex-shrink:0">
+      <style>
+        @keyframes radar { to { transform:rotate(360deg); } }
+        @keyframes ping { 0%,100%{transform:scale(1);opacity:.4} 50%{transform:scale(1.3);opacity:0} }
+      </style>
+      <div style="position:absolute;inset:0;border-radius:50%;border:2px solid #C8972A;animation:ping 2.5s ease-in-out infinite"></div>
+      <div style="position:absolute;inset:0;border-radius:50%;background:conic-gradient(#C8972A55 0deg,transparent 90deg,transparent 360deg);animation:radar 3s linear infinite"></div>
+      <div id="radar-count" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',system-ui;font-size:15px;font-weight:700;color:#E8B044">—</div>
+    </div>
+    <div>
+      <div class="htitle">Patent Landscape Scanner</div>
+      <div class="hsub">Delta Gold Technologies · Gold nanostructure & quantum territory</div>
+    </div>
+    <a class="hback" href="index.html">← Back</a>
+    <div class="scan-time" id="scan-time" style="display:none;margin-left:16px">
+      <div class="lbl">Last scan</div>
+      <div class="val" id="scan-time-val"></div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Upload view -->
+    <div id="upload-view">
+      <div class="upload-zone" id="drop-zone"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="onDrop(event)"
+        onclick="document.getElementById('file-input').click()">
+        <input type="file" id="file-input" accept=".csv" style="display:none" onchange="handleFile(this.files[0])">
+        <div style="font-size:30px">📄</div>
+        <h3>Drop a Google Patents CSV export</h3>
+        <p>Go to <strong style="color:#B0BDD0">patents.google.com</strong> → search your territory → Download results as CSV<br>USPTO · EPO · WIPO · IPO all supported</p>
+      </div>
+      <div id="upload-error" style="display:none;background:#E0525218;border:1px solid #E0525244;border-radius:8px;padding:10px 14px;font-size:12px;color:#E05252;margin-bottom:10px"></div>
+      <button class="demo-btn" onclick="loadDemo()">Load demo dataset (10 sample patents)</button>
+
+      <div class="how-card">
+        <div class="lbl">How to export from Google Patents</div>
+        <div class="how-step"><div class="step-num">1</div><div class="step-text">Go to patents.google.com and run a search</div></div>
+        <div class="how-step"><div class="step-num">2</div><div class="step-text">Use queries like: <code style="color:#E8B044">"gold nanoparticle" quantum OR "gold nanostructure" qubit</code></div></div>
+        <div class="how-step"><div class="step-num">3</div><div class="step-text">Filter by date range (past 7 or 30 days) and patent offices (US, EP, WO, GB)</div></div>
+        <div class="how-step"><div class="step-num">4</div><div class="step-text">Click the download icon → "Download results" → CSV</div></div>
+        <div class="how-step"><div class="step-num">5</div><div class="step-text">Upload that CSV here — scanner flags threats within seconds</div></div>
+      </div>
+    </div>
+
+    <!-- Results view -->
+    <div id="results-view" style="display:none">
+      <div class="stats" id="stats-row"></div>
+      <div class="filters" id="filter-row"></div>
+      <div id="cards-area"></div>
+      <div class="result-footer">
+        <div class="result-count" id="result-count"></div>
+        <button class="new-scan-btn" onclick="resetScan()">← New scan</button>
+      </div>
+    </div>
+  </main>
+  <footer-note>© Delta Gold Technologies Plc · Confidential</footer-note>
+</div>
+
+<script>
+const PASSWORD = "DGT2025";
+
+// ── Auth ──────────────────────────────────────────────────────────
+function auth() {
+  const v = document.getElementById('pw').value;
+  if (v === PASSWORD) {
+    sessionStorage.setItem('dgt_auth','1');
+    document.getElementById('gate').style.display='none';
+    document.getElementById('app').style.display='block';
+  } else {
+    document.getElementById('err').textContent='Incorrect access code.';
+    document.getElementById('pw').value='';
+  }
+}
+if (sessionStorage.getItem('dgt_auth')==='1') {
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='block';
+}
+
+// ── Keywords ──────────────────────────────────────────────────────
+const WATCH = {
+  core: ["gold nanoparticle","gold nanostructure","gold nanocluster","plasmonic gold","gold quantum dot","gold nanotube","gold nanorod","gold nanowire","AuNP","colloidal gold","auric nanoscale"],
+  quantum: ["quantum computing","quantum processor","qubit","quantum coherence","quantum entanglement","topological qubit","superconducting qubit","quantum circuit","quantum gate","quantum error correction"],
+  materials: ["nanoscale gold","gold thin film","gold monolayer","self-assembled monolayer gold","SAM gold","thiolated gold","gold surface plasmon","localized surface plasmon","gold nanoarray","gold lattice"],
+  competitors: ["IBM quantum","Google quantum","Microsoft quantum","Intel quantum","IonQ","Rigetti","D-Wave","Oxford Quantum Circuits","Quantinuum","PsiQuantum"],
+  universities: ["Penn State","Pennsylvania State","University of Toronto","MIT","Stanford","Caltech","Cambridge University","ETH Zurich","TU Delft","University of Chicago","Harvard University","Princeton University"],
+};
+
+const TIERS = [
+  { level:"HIGH",   label:"Direct Threat",        color:"#E05252", bg:"#E0525218",
+    test: t => hasAny(t,WATCH.core) && (hasAny(t,WATCH.quantum)||hasAny(t,WATCH.competitors)) },
+  { level:"WATCH",  label:"Adjacent Territory",    color:"#D4882A", bg:"#D4882A18",
+    test: t => hasAny(t,WATCH.core)||hasAny(t,WATCH.materials) },
+  { level:"INFO",   label:"University Activity",   color:"#8B6FD4", bg:"#8B6FD418",
+    test: t => hasAny(t,WATCH.universities)&&hasAny(t,WATCH.quantum) },
+  { level:"MONITOR",label:"Quantum Landscape",     color:"#3DB87A", bg:"#3DB87A18",
+    test: t => hasAny(t,WATCH.quantum) },
+];
+
+function hasAny(text,terms){ const l=text.toLowerCase(); return terms.some(t=>l.includes(t.toLowerCase())); }
+function matchedTerms(text){ const l=text.toLowerCase(); return Object.values(WATCH).flat().filter(t=>l.includes(t.toLowerCase())); }
+
+function normalise(row){
+  const id = row["Publication number"]||row["publication_number"]||row["Patent Number"]||row["ID"]||"—";
+  return {
+    id,
+    title: row["Title"]||row["title"]||"(no title)",
+    assignee: row["Assignee"]||row["assignee"]||row["Applicant"]||"—",
+    date: row["Publication date"]||row["publication_date"]||row["Filing date"]||row["date"]||"—",
+    office: row["Office"]||row["office"]||(id.startsWith("US")?"USPTO":id.startsWith("EP")?"EPO":id.startsWith("WO")?"WIPO":id.startsWith("GB")?"IPO":"—"),
+    url: row["Result link"]||row["URL"]||(id!=="—"?`https://patents.google.com/patent/${id.replace(/\s/g,"")}`:""),
+    abstract: row["Abstract"]||row["abstract"]||row["Description"]||"",
+    _raw: row,
+  };
+}
+
+function classify(row){
+  const text = [row["Title"]||"",row["Abstract"]||row["abstract"]||"",row["Assignee"]||"",row["Claims"]||""].join(" ");
+  for(const t of TIERS){ if(t.test(text)) return {...t, hits:[...new Set(matchedTerms(text))]}; }
+  return null;
+}
+
+// ── Demo data ─────────────────────────────────────────────────────
+const DEMO_CSV=`Publication number,Title,Assignee,Publication date,Abstract
+US20240123456A1,Gold nanoparticle-based quantum coherence enhancement for qubit stabilisation,IBM Research,2024-03-15,"A method for using gold nanoparticles to enhance quantum coherence in superconducting qubit systems"
+EP4187123A1,Plasmonic gold nanostructure arrays for quantum information processing,University of Toronto,2024-01-22,"Gold nanorod arrays exhibiting enhanced plasmonic coupling for quantum gate operations"
+WO2024056789A1,Topological qubit implementation using gold nanowire networks,Microsoft Technology Licensing,2024-02-08,"Methods and systems for implementing topological qubits using gold nanowire networks"
+US20240098765A1,Gold nanoparticle synthesis for medical imaging contrast enhancement,Stanford University,2024-03-01,"Colloidal gold nanoparticles with controlled size distribution for MRI contrast"
+EP4201234B1,Quantum error correction in superconducting circuits,Google LLC,2024-02-14,"Error correction protocols for superconducting quantum circuits using surface codes"
+US20240145632A1,Gold thin film deposition for semiconductor interconnects,Intel Corporation,2024-03-20,"Ultra-thin gold film deposition methods for advanced semiconductor packaging"
+WO2024078901A1,Self-assembled gold nanoparticle monolayers for quantum sensing,Penn State University,2024-01-30,"Thiolated gold nanoparticles forming ordered SAM structures for quantum-enhanced sensing"
+GB2619876A,Gold nanocluster fluorescence for biological labelling,University of Cambridge,2024-02-28,"Gold nanoclusters with tunable fluorescence for cellular imaging and quantum dot applications"
+US20240167890A1,Quantum computing architecture using trapped ion qubits,IonQ Inc,2024-03-10,"Trapped ion quantum processor with improved gate fidelity"
+EP4198765A1,AuNP surface plasmon resonance biosensors,ETH Zurich,2024-02-05,"Gold nanoparticle arrays exploiting localised surface plasmon resonance for biosensing"`;
+
+// ── State ─────────────────────────────────────────────────────────
+let allFlagged = [];
+let totalScanned = 0;
+let activeFilter = 'ALL';
+let searchQ = '';
+let expandedCards = new Set();
+
+function loadDemo(){ processCSV(DEMO_CSV); }
+function onDrop(e){ e.preventDefault(); e.currentTarget.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); }
+
+function handleFile(file){
+  if(!file) return;
+  if(!file.name.endsWith('.csv')){
+    showUploadError('Please upload a CSV file exported from Google Patents.');
+    return;
+  }
+  const r = new FileReader();
+  r.onload = e => processCSV(e.target.result);
+  r.readAsText(file);
+}
+
+function showUploadError(msg){
+  const el = document.getElementById('upload-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function processCSV(csv){
+  document.getElementById('upload-error').style.display='none';
+  Papa.parse(csv,{
+    header:true, skipEmptyLines:true,
+    complete({data}){
+      if(!data.length){ showUploadError('No rows found. Check the CSV has a header row.'); return; }
+      allFlagged = [];
+      totalScanned = data.length;
+      for(const row of data){
+        const cl = classify(row);
+        if(cl) allFlagged.push({ patent: normalise(row), cl });
+      }
+      allFlagged.sort((a,b)=>{
+        const o=["HIGH","WATCH","INFO","MONITOR"];
+        return o.indexOf(a.cl.level)-o.indexOf(b.cl.level);
+      });
+      activeFilter='ALL'; searchQ=''; expandedCards.clear();
+      renderResults();
+    },
+    error(err){ showUploadError(`Parse error: ${err.message}`); }
+  });
+}
+
+function renderResults(){
+  document.getElementById('upload-view').style.display='none';
+  document.getElementById('results-view').style.display='block';
+  document.getElementById('radar-count').textContent=allFlagged.length;
+  document.getElementById('scan-time').style.display='block';
+  document.getElementById('scan-time-val').textContent=new Date().toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
+  renderStats();
+  renderFilters();
+  renderCards();
+}
+
+function counts(){
+  return {
+    HIGH:   allFlagged.filter(r=>r.cl.level==='HIGH').length,
+    WATCH:  allFlagged.filter(r=>r.cl.level==='WATCH').length,
+    INFO:   allFlagged.filter(r=>r.cl.level==='INFO').length,
+    MONITOR:allFlagged.filter(r=>r.cl.level==='MONITOR').length,
+  };
+}
+
+function renderStats(){
+  const c=counts();
+  document.getElementById('stats-row').innerHTML=`
+    <div class="stat"><div class="stat-val">${totalScanned}</div><div class="stat-lbl">Scanned</div></div>
+    <div class="stat"><div class="stat-val" style="color:#E05252">${c.HIGH}</div><div class="stat-lbl">High threat</div></div>
+    <div class="stat"><div class="stat-val" style="color:#D4882A">${c.WATCH}</div><div class="stat-lbl">Watch</div></div>
+    <div class="stat"><div class="stat-val" style="color:#E8B044">${allFlagged.length}</div><div class="stat-lbl">Flagged total</div></div>`;
+}
+
+function renderFilters(){
+  const c=counts();
+  const colorMap={HIGH:'high',WATCH:'watch',INFO:'info',MONITOR:'monitor',ALL:'all'};
+  document.getElementById('filter-row').innerHTML=
+    ['ALL','HIGH','WATCH','INFO','MONITOR'].map(f=>`
+      <button class="filter-btn ${activeFilter===f?'active-'+colorMap[f]:''}" onclick="setFilter('${f}')">
+        ${f}${f!=='ALL'&&c[f]!==undefined?` (${c[f]})`:''}
+      </button>`).join('')+
+    `<input class="search-input" type="text" placeholder="Search assignee, title, ID…" value="${searchQ}" oninput="setSearch(this.value)">`;
+}
+
+function setFilter(f){ activeFilter=f; renderFilters(); renderCards(); }
+function setSearch(v){ searchQ=v; renderCards(); }
+
+function renderCards(){
+  const filtered=allFlagged.filter(({patent,cl})=>{
+    const mf=activeFilter==='ALL'||cl.level===activeFilter;
+    const ms=!searchQ||
+      patent.title.toLowerCase().includes(searchQ.toLowerCase())||
+      patent.assignee.toLowerCase().includes(searchQ.toLowerCase())||
+      patent.id.toLowerCase().includes(searchQ.toLowerCase());
+    return mf&&ms;
+  });
+
+  const area=document.getElementById('cards-area');
+  if(!filtered.length){ area.innerHTML='<div class="empty">No patents match this filter.</div>'; return; }
+
+  area.innerHTML=filtered.map(({patent,cl},i)=>{
+    const expanded=expandedCards.has(patent.id+i);
+    return `<div class="patent-card" style="background:#1A2133;border:1px solid ${cl.color}33;border-left:3px solid ${cl.color}" onclick="toggleCard('${patent.id+i}',${i})">
+      <div class="card-header">
+        <div style="flex:1;min-width:0">
+          <div class="card-meta">
+            <span class="badge" style="color:${cl.color};background:${cl.bg};border:1px solid ${cl.color}44">
+              <span class="badge-dot" style="background:${cl.color}"></span>${cl.level}
+            </span>
+            <span class="office-tag">${patent.office} · ${patent.date}</span>
+          </div>
+          <div class="card-title">${patent.title}</div>
+          <div class="card-sub">${patent.assignee} · <span style="font-family:monospace">${patent.id}</span></div>
+        </div>
+        <div class="card-arrow" style="transform:${expanded?'rotate(90deg)':'none'}">›</div>
+      </div>
+      ${expanded?`<div class="card-body">
+        ${patent.abstract?`<div class="card-abstract">${patent.abstract.slice(0,280)}${patent.abstract.length>280?'…':''}</div>`:''}
+        <div class="hits-label">Matched keywords</div>
+        <div>${cl.hits.slice(0,8).map(h=>`<span class="hit-tag">${h}</span>`).join('')}</div>
+        ${patent.url?`<a class="card-link" href="${patent.url}" target="_blank" onclick="event.stopPropagation()">View on Google Patents ↗</a>`:''}
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('result-count').textContent=`${filtered.length} of ${allFlagged.length} flagged patents shown`;
+}
+
+function toggleCard(id,i){
+  if(expandedCards.has(id)) expandedCards.delete(id);
+  else expandedCards.add(id);
+  renderCards();
+}
+
+function resetScan(){
+  allFlagged=[]; totalScanned=0; activeFilter='ALL'; searchQ=''; expandedCards.clear();
+  document.getElementById('results-view').style.display='none';
+  document.getElementById('upload-view').style.display='block';
+  document.getElementById('radar-count').textContent='—';
+  document.getElementById('scan-time').style.display='none';
+}
+</script>
+</body>
+</html>
