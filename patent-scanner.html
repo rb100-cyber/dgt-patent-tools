@@ -282,6 +282,10 @@ function showUploadError(msg){
 
 function processCSV(csv){
   document.getElementById('upload-error').style.display='none';
+  // Google Patents exports prepend a "search URL:" line before the real header - strip it
+  if(csv.trimStart().startsWith('search URL:')) {
+    csv = csv.substring(csv.indexOf('\n') + 1);
+  }
   Papa.parse(csv,{
     header:true, skipEmptyLines:true,
     complete({data}){
