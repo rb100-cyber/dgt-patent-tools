@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -193,11 +194,11 @@ if (sessionStorage.getItem('dgt_auth')==='1') {
 
 // ── Keywords ──────────────────────────────────────────────────────
 const WATCH = {
-  core: ["gold nanoparticle","gold nanostructure","gold nanocluster","plasmonic gold","gold quantum dot","gold nanotube","gold nanorod","gold nanowire","AuNP","colloidal gold","auric nanoscale"],
-  quantum: ["quantum computing","quantum processor","qubit","quantum coherence","quantum entanglement","topological qubit","superconducting qubit","quantum circuit","quantum gate","quantum error correction"],
-  materials: ["nanoscale gold","gold thin film","gold monolayer","self-assembled monolayer gold","SAM gold","thiolated gold","gold surface plasmon","localized surface plasmon","gold nanoarray","gold lattice"],
-  competitors: ["IBM quantum","Google quantum","Microsoft quantum","Intel quantum","IonQ","Rigetti","D-Wave","Oxford Quantum Circuits","Quantinuum","PsiQuantum"],
-  universities: ["Penn State","Pennsylvania State","University of Toronto","MIT","Stanford","Caltech","Cambridge University","ETH Zurich","TU Delft","University of Chicago","Harvard University","Princeton University"],
+  core: ["gold nanoparticle","gold nanostructure","gold nanocluster","plasmonic gold","gold quantum dot","gold nanotube","gold nanorod","gold nanowire","AuNP","colloidal gold","auric nanoscale","Au/Ge","gold germanium","spin-charge transducer","gold interconnect"],
+  quantum: ["quantum computing","quantum processor","qubit","quantum coherence","quantum entanglement","topological qubit","superconducting qubit","quantum circuit","quantum gate","quantum error correction","spin qubit","spin-orbit","EDSR","electric dipole spin resonance","spin transport","spin injection","spin Hall","silicon spin","germanium qubit","hole spin qubit"],
+  materials: ["nanoscale gold","gold thin film","gold monolayer","self-assembled monolayer gold","SAM gold","thiolated gold","gold surface plasmon","localized surface plasmon","gold nanoarray","gold lattice","SOI","silicon-on-insulator","spin-charge conversion","multilayer interconnect"],
+  competitors: ["IBM quantum","Google quantum","Microsoft quantum","Intel quantum","IonQ","Rigetti","D-Wave","Oxford Quantum Circuits","Quantinuum","PsiQuantum","Intel Labs","QuTech","Delft"],
+  universities: ["Penn State","Pennsylvania State","University of Toronto","MIT","Stanford","Caltech","Cambridge University","ETH Zurich","TU Delft","University of Chicago","Harvard University","Princeton University","University of New South Wales","UNSW","Sydney"],
 };
 
 const TIERS = [
@@ -219,17 +220,23 @@ function normalise(row){
   return {
     id,
     title: row["Title"]||row["title"]||"(no title)",
-    assignee: row["Assignee"]||row["assignee"]||row["Applicant"]||"—",
-    date: row["Publication date"]||row["publication_date"]||row["Filing date"]||row["date"]||"—",
+    assignee: row["Assignee"]||row["assignee"]||row["Applicant"]||row["applicant"]||"—",
+    date: row["Publication date"]||row["publication date"]||row["publication_date"]||row["Filing date"]||row["filing/creation date"]||row["date"]||"—",
     office: row["Office"]||row["office"]||(id.startsWith("US")?"USPTO":id.startsWith("EP")?"EPO":id.startsWith("WO")?"WIPO":id.startsWith("GB")?"IPO":"—"),
-    url: row["Result link"]||row["URL"]||(id!=="—"?`https://patents.google.com/patent/${id.replace(/\s/g,"")}`:""),
-    abstract: row["Abstract"]||row["abstract"]||row["Description"]||"",
+    url: row["Result link"]||row["result link"]||row["URL"]||(id!=="—"?`https://patents.google.com/patent/${id.replace(/\s/g,"").replace(/-/g,"")}`:""),
+    abstract: row["Abstract"]||row["abstract"]||row["Description"]||row["description"]||"",
     _raw: row,
   };
 }
 
 function classify(row){
-  const text = [row["Title"]||"",row["Abstract"]||row["abstract"]||"",row["Assignee"]||"",row["Claims"]||""].join(" ");
+  const text = [
+    row["Title"]||row["title"]||"",
+    row["Abstract"]||row["abstract"]||row["Description"]||row["description"]||"",
+    row["Assignee"]||row["assignee"]||row["Applicant"]||row["applicant"]||"",
+    row["Claims"]||row["claims"]||"",
+    row["inventor/author"]||"",
+  ].join(" ");
   for(const t of TIERS){ if(t.test(text)) return {...t, hits:[...new Set(matchedTerms(text))]}; }
   return null;
 }
