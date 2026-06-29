@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -162,8 +163,10 @@
     <h2>Keyword Extractor</h2>
     <p>DGT Patent Intelligence · Enter access code</p>
     <input type="password" id="pw" placeholder="Access code" onkeydown="if(event.key==='Enter')auth()">
+    <input type="password" id="apikey" placeholder="Anthropic API key (sk-ant-…)" style="letter-spacing:0.03em" onkeydown="if(event.key==='Enter')auth()">
     <button onclick="auth()">Unlock</button>
     <div class="err" id="err"></div>
+    <div style="font-size:10px;color:#253046;margin-top:12px;line-height:1.5">API key is stored in session memory only.<br>It is never saved or transmitted beyond Anthropic.</div>
   </div>
 </div>
 
@@ -230,7 +233,7 @@
 
 <script>
 const PASSWORD = "DGT2025";
-const ANTHROPIC_KEY = "YOUR_API_KEY_HERE";
+let ANTHROPIC_KEY = '';
 
 const CAT_META = {
   core_compounds:  { label: "Core compounds",       color: "#E8B044", bg: "#C8972A18" },
@@ -254,16 +257,25 @@ let queries = [];
 // ── Auth ──────────────────────────────────────────────────────────
 function auth() {
   const v = document.getElementById('pw').value;
-  if (v === PASSWORD) {
-    sessionStorage.setItem('dgt_auth','1');
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-  } else {
-    document.getElementById('err').textContent = 'Incorrect access code.';
+  const k = document.getElementById('apikey').value.trim();
+  const err = document.getElementById('err');
+  if (v !== PASSWORD) {
+    err.textContent = 'Incorrect access code.';
     document.getElementById('pw').value = '';
+    return;
   }
+  if (!k.startsWith('sk-ant-')) {
+    err.textContent = 'Please enter a valid Anthropic API key (starts with sk-ant-).';
+    return;
+  }
+  ANTHROPIC_KEY = k;
+  sessionStorage.setItem('dgt_auth','1');
+  sessionStorage.setItem('dgt_key', k);
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
 }
-if (sessionStorage.getItem('dgt_auth') === '1') {
+if (sessionStorage.getItem('dgt_auth') === '1' && sessionStorage.getItem('dgt_key')) {
+  ANTHROPIC_KEY = sessionStorage.getItem('dgt_key');
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 }
