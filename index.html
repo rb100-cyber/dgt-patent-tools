@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DGT Patent Intelligence</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: #0B0F1A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #EDF2F8;
+  }
+  .card {
+    background: #1A2133;
+    border: 1px solid #253046;
+    border-radius: 12px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+  }
+  .logo {
+    width: 52px; height: 52px;
+    border: 2px solid #C8972A;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    margin: 0 auto 20px;
+  }
+  h1 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 20px; font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .sub {
+    font-size: 12px; color: #7A8BA8;
+    margin-bottom: 32px;
+  }
+  input[type=password] {
+    width: 100%;
+    padding: 10px 14px;
+    background: #0B0F1A;
+    border: 1px solid #253046;
+    border-radius: 8px;
+    color: #EDF2F8;
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+    text-align: center;
+    transition: border-color 0.15s;
+  }
+  input[type=password]:focus { border-color: #C8972A; }
+  button {
+    width: 100%;
+    padding: 10px;
+    background: #C8972A22;
+    border: 1px solid #C8972A88;
+    border-radius: 8px;
+    color: #E8B044;
+    font-size: 13px; font-weight: 700;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: all 0.15s;
+  }
+  button:hover { background: #C8972A33; border-color: #E8B044; }
+  .error {
+    margin-top: 10px;
+    font-size: 12px; color: #E05252;
+    min-height: 18px;
+  }
+  .tools {
+    display: none;
+    margin-top: 28px;
+    border-top: 1px solid #253046;
+    padding-top: 24px;
+    text-align: left;
+  }
+  .tool-label {
+    font-size: 10px; color: #7A8BA8;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+  .tool-link {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: #131929;
+    border: 1px solid #253046;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #EDF2F8;
+    margin-bottom: 8px;
+    transition: border-color 0.15s;
+  }
+  .tool-link:hover { border-color: #C8972A44; }
+  .tool-icon { font-size: 20px; }
+  .tool-title { font-size: 13px; font-weight: 600; font-family: 'Space Grotesk', system-ui, sans-serif; }
+  .tool-desc { font-size: 11px; color: #7A8BA8; margin-top: 2px; }
+  .footer { margin-top: 28px; font-size: 10px; color: #253046; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">⚛</div>
+  <h1>DGT Patent Intelligence</h1>
+  <p class="sub">Delta Gold Technologies · Internal tools</p>
+
+  <input type="password" id="pw" placeholder="Enter access code" onkeydown="if(event.key==='Enter')check()">
+  <button onclick="check()">Access tools</button>
+  <div class="error" id="err"></div>
+
+  <div class="tools" id="tools">
+    <div class="tool-label">Available tools</div>
+    <a class="tool-link" href="patent-scanner.html">
+      <div class="tool-icon">📡</div>
+      <div>
+        <div class="tool-title">Patent Scanner</div>
+        <div class="tool-desc">Upload Google Patents CSV → threat classification by tier</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="footer">© Delta Gold Technologies Plc · Confidential</div>
+</div>
+
+<script>
+  // Change this to your chosen password
+  const PASSWORD = "DGT2025";
+
+  function check() {
+    const val = document.getElementById('pw').value;
+    const err = document.getElementById('err');
+    const tools = document.getElementById('tools');
+    if (val === PASSWORD) {
+      err.textContent = '';
+      tools.style.display = 'block';
+      sessionStorage.setItem('dgt_auth', '1');
+    } else {
+      err.textContent = 'Incorrect access code.';
+      document.getElementById('pw').value = '';
+    }
+  }
+
+  // Keep unlocked if already authenticated this session
+  if (sessionStorage.getItem('dgt_auth') === '1') {
+    document.getElementById('tools').style.display = 'block';
+  }
+</script>
+</body>
+</html>
